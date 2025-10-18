@@ -1,0 +1,54 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.env/
+.venv/
+venv/
+env/
+.conda/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs and caches
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Data: exclude large, raw datasets
+Data/genres_original/
+Data/images_original/
+
+# Checkpoints & training outputs
+checkpoints/
+logs/
+
+# Optional: ignore local notebooks' large outputs (keep notebooks themselves)
+# Uncomment to ignore all notebook files
+# *.ipynb
+
+# Audio datasets (keep test samples in Test_Music/)
+Data/**/*.wav
+Data/**/*.mp3
+
+# Node/npm (if any UI assets)
+node_modules/
