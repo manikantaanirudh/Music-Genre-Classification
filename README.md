@@ -128,7 +128,3 @@ Classes used by the model:
 ## Contributing
 
 Issues and pull requests are welcome. If proposing major changes, please open an issue first to discuss what you’d like to change.
-
-## License
-
-Add a license (e.g., MIT, Apache-2.0) to clarify usage and redistribution rights. If you add a `LICENSE` file, reference it here.
