@@ -3,15 +3,12 @@ import tensorflow as tf
 import numpy as np
 import librosa
 from matplotlib import pyplot
-import numpy as np
-from tensorflow.image import resize
 import tempfile
 import os
 
 #Function
 @st.cache_resource()
 def load_model():
-    # Load model from repo-relative path
     base_dir = os.path.dirname(__file__)
     candidate_paths = [
         os.path.join(base_dir, 'Trained_model.h5'),
@@ -19,7 +16,11 @@ def load_model():
     ]
     for p in candidate_paths:
         if os.path.exists(p):
-            return tf.keras.models.load_model(p)
+            try:
+                return tf.keras.models.load_model(p)
+            except Exception as e:
+                st.error(f"Error loading model: {e}")
+                raise
     st.error("Model file 'Trained_model.h5' not found. Place it in the project root and retry.")
     raise FileNotFoundError("Trained_model.h5 not found in expected locations.")
 
@@ -28,48 +29,45 @@ def load_model():
 def load_and_preprocess_data(file_path, target_shape=(150, 150)):
     data = []
     audio_data, sample_rate = librosa.load(file_path, sr=None)
-    # Perform preprocessing (e.g., convert to Mel spectrogram and resize)
-    # Define the duration of each chunk and overlap
     chunk_duration = 4  # seconds
     overlap_duration = 2  # seconds
-                
-    # Convert durations to samples
-    chunk_samples = chunk_duration * sample_rate
-    overlap_samples = overlap_duration * sample_rate
-                
-    # Calculate the number of chunks
+    chunk_samples = int(chunk_duration * sample_rate)
+    overlap_samples = int(overlap_duration * sample_rate)
     num_chunks = int(np.ceil((len(audio_data) - chunk_samples) / (chunk_samples - overlap_samples))) + 1
-                
-    # Iterate over each chunk
     for i in range(num_chunks):
-                    # Calculate start and end indices of the chunk
         start = i * (chunk_samples - overlap_samples)
         end = start + chunk_samples
-                    
-                    # Extract the chunk of audio
         chunk = audio_data[start:end]
-                    
-                    # Compute the Mel spectrogram for the chunk
         mel_spectrogram = librosa.feature.melspectrogram(y=chunk, sr=sample_rate)
-                    
-                #mel_spectrogram = librosa.feature.melspectrogram(y=audio_data, sr=sample_rate)
-        mel_spectrogram = resize(np.expand_dims(mel_spectrogram, axis=-1), target_shape)
+        # Convert to log scale (dB) and normalize
+        mel_spectrogram = librosa.power_to_db(mel_spectrogram, ref=np.max)
+        mel_spectrogram = (mel_spectrogram - np.min(mel_spectrogram)) / (np.max(mel_spectrogram) - np.min(mel_spectrogram) + 1e-6)
+        # Resize to target shape using tf.image.resize
+        mel_spectrogram = np.expand_dims(mel_spectrogram, axis=-1)  # (height, width, 1)
+        mel_spectrogram = tf.image.resize(mel_spectrogram, target_shape).numpy()
         data.append(mel_spectrogram)
-    
+    # Add batch dimension
     return np.array(data)
 
 
 
 #Tensorflow Model Prediction
-def model_prediction(X_test):
-    model = load_model()
-    y_pred = model.predict(X_test)
-    predicted_categories = np.argmax(y_pred,axis=1)
-    unique_elements, counts = np.unique(predicted_categories, return_counts=True)
-    #print(unique_elements, counts)
-    max_count = np.max(counts)
-    max_elements = unique_elements[counts == max_count]
-    return max_elements[0]
+def model_prediction(X_test, model=None):
+    if model is None:
+        model = load_model()
+    try:
+        # Ensure input shape is (batch, height, width, channels)
+        if len(X_test.shape) == 3:
+            X_test = np.expand_dims(X_test, axis=0)
+        y_pred = model.predict(X_test)
+        predicted_categories = np.argmax(y_pred, axis=1)
+        unique_elements, counts = np.unique(predicted_categories, return_counts=True)
+        max_count = np.max(counts)
+        max_elements = unique_elements[counts == max_count]
+        return max_elements[0]
+    except Exception as e:
+        st.error(f"Prediction failed: {e}")
+        return None
 
 
 
@@ -150,27 +148,25 @@ elif(app_mode=="Prediction"):
     st.header("Model Prediction")
     test_mp3 = st.file_uploader("Upload an audio file")
     filepath = None
-    if test_mp3 is not None: 
-        # Save uploaded file to a temporary file
+    model = load_model()
+    if test_mp3 is not None:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
             tmp_file.write(test_mp3.read())
             filepath = tmp_file.name
-            
 
-    #Show Button
-    if(st.button("Play Audio")):
+    if st.button("Play Audio"):
         st.audio(test_mp3)
-    
-    #Predict Button
-    if(st.button("Predict")):
+
+    if st.button("Predict"):
         if not filepath:
             st.error("Please upload an audio file first.")
         else:
             with st.spinner("Please Wait.."):
                 X_test = load_and_preprocess_data(filepath)
-                result_index = model_prediction(X_test)
-                st.balloons()
-                label = ['blues', 'classical','country','disco','hiphop','jazz','metal','pop','reggae','rock']
-                st.markdown("**:blue[Model Prediction:] It's a  :red[{}] music**".format(label[result_index]))
+                result_index = model_prediction(X_test, model=model)
+                if result_index is not None:
+                    st.balloons()
+                    label = ['blues', 'classical','country','disco','hiphop','jazz','metal','pop','reggae','rock']
+                    st.markdown(f"**:blue[Model Prediction:] It's a  :red[{label[result_index]}] music**")
 
        
