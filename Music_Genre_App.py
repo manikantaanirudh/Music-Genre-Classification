@@ -6,12 +6,22 @@ from matplotlib import pyplot
 import numpy as np
 from tensorflow.image import resize
 import tempfile
+import os
 
 #Function
 @st.cache_resource()
 def load_model():
-  model = tf.keras.models.load_model(r"C:\Users\rider\OneDrive\Desktop\fianl project dwdm\Trained_model.h5")
-  return model
+    # Load model from repo-relative path
+    base_dir = os.path.dirname(__file__)
+    candidate_paths = [
+        os.path.join(base_dir, 'Trained_model.h5'),
+        os.path.join(os.getcwd(), 'Trained_model.h5')
+    ]
+    for p in candidate_paths:
+        if os.path.exists(p):
+            return tf.keras.models.load_model(p)
+    st.error("Model file 'Trained_model.h5' not found. Place it in the project root and retry.")
+    raise FileNotFoundError("Trained_model.h5 not found in expected locations.")
 
 
 # Load and preprocess audio data
@@ -86,8 +96,15 @@ if(app_mode=="Home"):
 
     st.markdown(''' ## Welcome to the,\n
     ## Music Genre Classification System! 🎶🎧''')
-    image_path = r"C:\Users\rider\Downloads\music_genre_home.png"
-    st.image(image_path, use_column_width=True)
+    # Try to load a home image if available; skip silently if not found
+    possible_images = [
+        os.path.join(os.path.dirname(__file__), 'music_genre_home.png'),
+        os.path.join(os.path.dirname(__file__), 'images', 'music_genre_home.png')
+    ]
+    for img in possible_images:
+        if os.path.exists(img):
+            st.image(img, use_column_width=True)
+            break
     st.markdown("""
 **Our goal is to help in identifying music genres from audio tracks efficiently. Upload an audio file, and our system will analyze it to detect its genre. Discover the power of AI in music analysis!**
 
@@ -132,6 +149,7 @@ elif(app_mode=="About Project"):
 elif(app_mode=="Prediction"):
     st.header("Model Prediction")
     test_mp3 = st.file_uploader("Upload an audio file")
+    filepath = None
     if test_mp3 is not None: 
         # Save uploaded file to a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
@@ -145,11 +163,14 @@ elif(app_mode=="Prediction"):
     
     #Predict Button
     if(st.button("Predict")):
-      with st.spinner("Please Wait.."):       
-        X_test = load_and_preprocess_data(filepath)
-        result_index = model_prediction(X_test)
-        st.balloons()
-        label = ['blues', 'classical','country','disco','hiphop','jazz','metal','pop','reggae','rock']
-        st.markdown("**:blue[Model Prediction:] It's a  :red[{}] music**".format(label[result_index]))
+        if not filepath:
+            st.error("Please upload an audio file first.")
+        else:
+            with st.spinner("Please Wait.."):
+                X_test = load_and_preprocess_data(filepath)
+                result_index = model_prediction(X_test)
+                st.balloons()
+                label = ['blues', 'classical','country','disco','hiphop','jazz','metal','pop','reggae','rock']
+                st.markdown("**:blue[Model Prediction:] It's a  :red[{}] music**".format(label[result_index]))
 
        
