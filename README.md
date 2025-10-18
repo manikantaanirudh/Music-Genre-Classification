@@ -2,6 +2,8 @@
 
 Classify music into genres using a deep learning model trained on spectrogram-based features. This repo includes training notebooks, a ready-to-use trained model, and a Streamlit app for interactive predictions.
 
+🚀 **Live Demo:** [https://music-genre-classification-sljq.onrender.com](https://music-genre-classification-sljq.onrender.com)
+
 ## Highlights
 
 - 10-class genre prediction: blues, classical, country, disco, hiphop, jazz, metal, pop, reggae, rock
@@ -128,3 +130,30 @@ Classes used by the model:
 ## Contributing
 
 Issues and pull requests are welcome. If proposing major changes, please open an issue first to discuss what you’d like to change.
+
+## Deploying to Render
+
+You can deploy this Streamlit app for free on [Render](https://render.com/):
+
+1. **Fork or clone this repository to your own GitHub account.**
+2. **Sign up at [Render](https://render.com/) and create a new Web Service.**
+3. **Connect your GitHub repo and select this project.**
+4. **Set the following settings:**
+   - Environment: Python
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `streamlit run Music_Genre_App.py --server.port $PORT --server.headless true`
+   - (Optional) Add a custom domain or use the provided Render URL.
+5. **Ensure your trained model (`Trained_model.h5`) is committed and tracked via Git LFS.**
+   - If you see a missing model error, run `git lfs install` and `git lfs pull` locally before pushing.
+6. **Wait for Render to build and deploy.**
+   - Your app will be live at the provided URL!
+
+### Render configuration files
+
+- `render.yaml` — Render service definition (auto-detected by Render)
+- `Procfile` — Optional, for Heroku compatibility (not required by Render)
+
+### Notes
+
+- If you update your model, commit and push the new `.h5` file to GitHub.
+- Large datasets are ignored by default; only the model and app code are deployed.
